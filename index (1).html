@@ -1,0 +1,1185 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimized Flappy Bird</title>
+    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.js"></script>
+    
+    <!-- AdMob/AdSense Integration -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXXX"
+            crossorigin="anonymous"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            touch-action: manipulation;
+            background-color: #111;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: calc(100vh - 60px); /* Reserve space for ad banner */
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        
+        /* AdMob Banner Styles */
+        #admob-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: #000;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-top: 1px solid #333;
+        }
+        
+        .sky-gradient {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #1976d2, #42a5f5);
+            z-index: 1;
+            transition: background 3s ease;
+        }
+        
+        .night-mode .sky-gradient {
+            background: linear-gradient(to bottom, #0d2255, #1a237e);
+        }
+        
+        .clouds {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 200%;
+            height: 100%;
+            background: url('https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/clouds.png') repeat-x;
+            background-size: 50% 60%;
+            z-index: 2;
+            opacity: 0.6;
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        
+        .mountains-back {
+            position: absolute;
+            bottom: 112px;
+            left: 0;
+            width: 200%;
+            height: 180px;
+            z-index: 3;
+            background: url('https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/mountains-back.png') repeat-x;
+            background-size: 50% 100%;
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        
+        .mountains {
+            position: absolute;
+            bottom: 112px;
+            left: 0;
+            width: 200%;
+            height: 150px;
+            z-index: 4;
+            background: url('https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/mountains.png') repeat-x;
+            background-size: 50% 100%;
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        
+        .city {
+            position: absolute;
+            bottom: 112px;
+            left: 0;
+            width: 200%;
+            height: 100px;
+            z-index: 5;
+            background: url('https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/city.png') repeat-x;
+            background-size: 50% 100%;
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        
+        #game-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 6;
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+        }
+        
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+        }
+        
+        .bird {
+            position: absolute;
+            width: 34px;
+            height: 24px;
+            background-color: #ffe11a;
+            border-radius: 50%;
+            z-index: 15;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transform-origin: center center;
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        
+        .bird:before {
+            content: "";
+            position: absolute;
+            top: 5px;
+            left: -3px;
+            width: 12px;
+            height: 8px;
+            background-color: #ff9000;
+            border-radius: 50%;
+            transform: rotate(25deg);
+        }
+        
+        .bird:after {
+            content: "";
+            position: absolute;
+            top: 5px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            background-color: #000;
+            border-radius: 50%;
+        }
+        
+        .bird-wing {
+            position: absolute;
+            width: 16px;
+            height: 12px;
+            background-color: #fff;
+            border-radius: 50%;
+            bottom: -4px;
+            left: 8px;
+            z-index: 14;
+            transform-origin: top left;
+            will-change: transform;
+        }
+        
+        .pipe {
+            position: absolute;
+            width: 52px;
+            background-color: #58a818;
+            border: 2px solid #000;
+            z-index: 10;
+            box-shadow: inset -5px 0 5px rgba(0, 0, 0, 0.1), inset 2px 0 2px rgba(255, 255, 255, 0.2);
+            background-image: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.1) 40%, transparent);
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        
+        .pipe-cap {
+            position: absolute;
+            width: 60px;
+            height: 20px;
+            background-color: #73bf2e;
+            border: 2px solid #000;
+            left: -6px;
+            z-index: 11;
+            box-shadow: inset 0 -3px 3px rgba(0, 0, 0, 0.1), inset 0 3px 3px rgba(255, 255, 255, 0.2);
+        }
+        
+        .pipe-top .pipe-cap {
+            bottom: -2px;
+        }
+        
+        .pipe-bottom .pipe-cap {
+            top: -2px;
+        }
+        
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 112px;
+            background-color: #deb887;
+            border-top: 2px solid #000;
+            z-index: 12;
+            background-image: url('https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/ground.png');
+            background-repeat: repeat-x;
+            background-size: 50% 100%;
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        
+        .ground-strip {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            height: 20px;
+            background-color: #8dd83d;
+            z-index: 13;
+            box-shadow: 0 -3px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 40px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7), 0 0 10px rgba(255, 255, 255, 0.5);
+            z-index: 30;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #f39c12;
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            border: 2px solid #000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+            background-color: #f5b041;
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .title {
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+        
+        .subtitle {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+        
+        .instructions {
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+        
+        .glow {
+            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #ff0, 0 0 20px #ff0;
+        }
+        
+        /* Stars for night mode */
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            opacity: 0;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 90px 40px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 160px 120px, #ddd, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 200px 90px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 300px 40px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 400px 140px, #eee, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 500px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 600px 120px, #ddd, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 700px 50px, #fff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 800px 400px;
+            transition: opacity 3s ease;
+        }
+        
+        .night-mode .stars {
+            opacity: 1;
+        }
+        
+        .night-mode .clouds {
+            opacity: 0.2;
+        }
+
+        #fps-counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        #settings-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .settings-toggle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1001;
+            font-size: 16px;
+        }
+        
+        /* AdMob Banner Ad Styles */
+        .ad-banner-container {
+            width: 320px;
+            height: 50px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Enhanced Animated Background Layers -->
+        <div class="sky-gradient"></div>
+        <div class="stars"></div>
+        <div class="clouds"></div>
+        <div class="mountains-back"></div>
+        <div class="mountains"></div>
+        <div class="city"></div>
+        
+        <div id="game-screen">
+            <div id="score">0</div>
+        </div>
+        
+        <div id="start-screen">
+            <h2 class="title glow">Flappy Bird</h2>
+            <p class="instructions">Click or press spacebar to flap</p>
+            <button id="start-button" class="btn">Start Game</button>
+        </div>
+        
+        <div id="game-over-screen">
+            <h2 class="title">Game Over</h2>
+            <p class="subtitle">Score: <span id="final-score">0</span></p>
+            <button id="restart-button" class="btn">Play Again</button>
+        </div>
+
+        <div id="fps-counter">FPS: 60</div>
+        
+        <div class="settings-toggle" id="settings-toggle">⚙️</div>
+        <div id="settings-panel">
+            <div class="mb-2">
+                <label class="flex items-center">
+                    <input type="checkbox" id="toggle-night-mode" class="mr-2">
+                    Night Mode
+                </label>
+            </div>
+            <div class="mb-2">
+                <label class="flex items-center">
+                    <input type="checkbox" id="toggle-fx" class="mr-2" checked>
+                    Enable Effects
+                </label>
+            </div>
+            <div class="mb-2">
+                <label class="flex items-center">
+                    <input type="checkbox" id="toggle-sound" class="mr-2" checked>
+                    Enable Sound
+                </label>
+            </div>
+            <div>
+                <label class="block mb-1">Difficulty:</label>
+                <select id="difficulty" class="bg-gray-800 text-white p-1 w-full">
+                    <option value="easy">Easy</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AdMob Banner Ad Container -->
+    <div id="admob-banner">
+        <!-- AdSense Banner Ad -->
+        <ins class="adsbygoogle ad-banner-container"
+             style="display:inline-block;width:320px;height:50px"
+             data-ad-client="ca-pub-XXXXXXXXXXXXXXXXX"
+             data-ad-slot="XXXXXXXXXX"></ins>
+    </div>
+
+    <script>
+        // Initialize AdSense ads
+        (adsbygoogle = window.adsbygoogle || []).push({});
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const gameContainer = document.getElementById('game-container');
+            const gameScreen = document.getElementById('game-screen');
+            const startScreen = document.getElementById('start-screen');
+            const gameOverScreen = document.getElementById('game-over-screen');
+            const scoreDisplay = document.getElementById('score');
+            const finalScoreDisplay = document.getElementById('final-score');
+            const startButton = document.getElementById('start-button');
+            const restartButton = document.getElementById('restart-button');
+            const fpsCounter = document.getElementById('fps-counter');
+            const settingsToggle = document.getElementById('settings-toggle');
+            const settingsPanel = document.getElementById('settings-panel');
+            const nightModeToggle = document.getElementById('toggle-night-mode');
+            const fxToggle = document.getElementById('toggle-fx');
+            const soundToggle = document.getElementById('toggle-sound');
+            const difficultySelect = document.getElementById('difficulty');
+            
+            // FPS monitoring variables
+            let frameCount = 0;
+            let lastFpsUpdateTime = 0;
+            let lastFrameTime = 0;
+            
+            // Game variables - Dynamic for different difficulty levels
+            let GRAVITY = 0.4;
+            let FLAP_STRENGTH = -7;
+            let PIPE_SPEED = 2;
+            let PIPE_SPACING = 320;
+            let PIPE_GAP = 150;
+            
+            // Game state
+            let bird;
+            let birdWing;
+            let pipes = [];
+            let score = 0;
+            let gameStarted = false;
+            let gameOver = false;
+            let birdVelocity = 0;
+            let windowHeight, windowWidth;
+            let animationFrame;
+            let pipeTimer;
+            let activeAnimations = {};
+            
+            // Performance optimization: Object pooling
+            let pipePool = [];
+            
+            // Sound effects
+            const sounds = {
+                flap: new Audio('https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/sounds/flap.mp3'),
+                score: new Audio('https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/sounds/score.mp3'),
+                hit: new Audio('https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/sounds/hit.mp3')
+            };
+            
+            // Preload sounds
+            Object.values(sounds).forEach(sound => {
+                sound.load();
+                sound.volume = 0.2;
+            });
+            
+            // Settings
+            let settings = {
+                nightMode: false,
+                enableFx: true,
+                enableSound: true,
+                difficulty: 'normal'
+            };
+
+            // Load settings from localStorage
+            function loadSettings() {
+                const savedSettings = localStorage.getItem('flappySettings');
+                if (savedSettings) {
+                    try {
+                        settings = JSON.parse(savedSettings);
+                        
+                        // Apply settings to controls
+                        nightModeToggle.checked = settings.nightMode;
+                        fxToggle.checked = settings.enableFx;
+                        soundToggle.checked = settings.enableSound;
+                        difficultySelect.value = settings.difficulty;
+                        
+                        // Apply night mode if active
+                        if (settings.nightMode) {
+                            gameContainer.classList.add('night-mode');
+                        }
+                        
+                        updateDifficultySettings();
+                    } catch (e) {
+                        console.error('Error loading settings:', e);
+                    }
+                }
+            }
+
+            // Save settings to localStorage
+            function saveSettings() {
+                localStorage.setItem('flappySettings', JSON.stringify(settings));
+            }
+
+            // Update difficulty parameters
+            function updateDifficultySettings() {
+                switch (settings.difficulty) {
+                    case 'easy':
+                        GRAVITY = 0.3;
+                        FLAP_STRENGTH = -6.5;
+                        PIPE_SPEED = 1.7;
+                        PIPE_SPACING = 380;
+                        PIPE_GAP = 180;
+                        break;
+                    case 'normal':
+                        GRAVITY = 0.4;
+                        FLAP_STRENGTH = -7;
+                        PIPE_SPEED = 2;
+                        PIPE_SPACING = 320;
+                        PIPE_GAP = 150;
+                        break;
+                    case 'hard':
+                        GRAVITY = 0.5;
+                        FLAP_STRENGTH = -7.5;
+                        PIPE_SPEED = 2.5;
+                        PIPE_SPACING = 280;
+                        PIPE_GAP = 130;
+                        break;
+                }
+            }
+            
+            // Update window dimensions
+            function updateDimensions() {
+                windowWidth = window.innerWidth;
+                windowHeight = window.innerHeight - 60; // Subtract ad banner height
+            }
+            
+            // Create bird element
+            function createBird() {
+                bird = document.createElement('div');
+                bird.className = 'bird';
+                const birdX = Math.min(windowWidth * 0.2, 100);
+                bird.style.left = birdX + 'px';
+                bird.style.top = (windowHeight / 2) + 'px';
+                gameScreen.appendChild(bird);
+                
+                birdWing = document.createElement('div');
+                birdWing.className = 'bird-wing';
+                bird.appendChild(birdWing);
+                
+                return bird;
+            }
+            
+            // Create ground element
+            function createGround() {
+                const ground = document.createElement('div');
+                ground.className = 'ground';
+                
+                const groundStrip = document.createElement('div');
+                groundStrip.className = 'ground-strip';
+                ground.appendChild(groundStrip);
+                
+                gameScreen.appendChild(ground);
+                
+                startGroundAnimation(ground);
+                
+                return ground;
+            }
+            
+            // Create a pipe pair
+            function createPipe() {
+                let pipeTop, pipeBottom;
+                
+                // Use pipe from pool if available
+                if (pipePool.length > 0) {
+                    const pipePair = pipePool.pop();
+                    pipeTop = pipePair.top;
+                    pipeBottom = pipePair.bottom;
+                    
+                    pipeTop.style.display = 'block';
+                    pipeBottom.style.display = 'block';
+                    
+                    gameScreen.appendChild(pipeTop);
+                    gameScreen.appendChild(pipeBottom);
+                } else {
+                    // Create new pipes if none in pool
+                    pipeTop = document.createElement('div');
+                    pipeTop.className = 'pipe pipe-top';
+                    
+                    const pipeTopCap = document.createElement('div');
+                    pipeTopCap.className = 'pipe-cap';
+                    pipeTop.appendChild(pipeTopCap);
+                    
+                    pipeBottom = document.createElement('div');
+                    pipeBottom.className = 'pipe pipe-bottom';
+                    
+                    const pipeBottomCap = document.createElement('div');
+                    pipeBottomCap.className = 'pipe-cap';
+                    pipeBottom.appendChild(pipeBottomCap);
+                }
+                
+                // Calculate proportional height based on window height
+                const pipeHeight = Math.floor(Math.random() * (windowHeight * 0.3)) + (windowHeight * 0.1);
+                
+                pipeTop.style.height = pipeHeight + 'px';
+                pipeTop.style.left = windowWidth + 'px';
+                pipeTop.style.top = '0';
+                
+                pipeBottom.style.height = (windowHeight - pipeHeight - PIPE_GAP - 112) + 'px';
+                pipeBottom.style.left = windowWidth + 'px';
+                pipeBottom.style.bottom = '112px';
+                
+                gameScreen.appendChild(pipeTop);
+                gameScreen.appendChild(pipeBottom);
+                
+                return { top: pipeTop, bottom: pipeBottom, passed: false };
+            }
+            
+            // Create pipes on interval
+            function createPipes() {
+                if (pipes.length === 0 || 
+                    parseFloat(pipes[pipes.length - 1].top.style.left) < windowWidth - PIPE_SPACING) {
+                    pipes.push(createPipe());
+                }
+            }
+            
+            // Update pipes positions
+            function updatePipes(deltaTime) {
+                // Time correction factor for consistent movement speed regardless of framerate
+                const timeCorrection = deltaTime / (1000/60);
+                
+                // Using backward loop to avoid index issues when removing elements
+                for (let i = pipes.length - 1; i >= 0; i--) {
+                    const pipe = pipes[i];
+                    const pipeLeft = parseFloat(pipe.top.style.left);
+                    const newLeft = pipeLeft - PIPE_SPEED * timeCorrection;
+                    
+                    pipe.top.style.left = newLeft + 'px';
+                    pipe.bottom.style.left = newLeft + 'px';
+                    
+                    // Check if pipe is passed
+                    const birdX = parseFloat(bird.style.left);
+                    if (!pipe.passed && newLeft < birdX - 20) {
+                        pipe.passed = true;
+                        score++;
+                        scoreDisplay.textContent = score;
+                        
+                        if (settings.enableSound) {
+                            try {
+                                sounds.score.currentTime = 0;
+                                sounds.score.play().catch(e => {});
+                            } catch(e) {}
+                        }
+                    }
+                    
+                    // Remove pipe if it's off-screen and add to pool
+                    if (newLeft < -60) {
+                        gameScreen.removeChild(pipe.top);
+                        gameScreen.removeChild(pipe.bottom);
+                        
+                        // Hide elements but keep them in pool for reuse
+                        pipe.top.style.display = 'none';
+                        pipe.bottom.style.display = 'none';
+                        
+                        // Add to pipe pool for reuse
+                        pipePool.push({
+                            top: pipe.top,
+                            bottom: pipe.bottom
+                        });
+                        
+                        pipes.splice(i, 1);
+                    }
+                }
+            }
+            
+            // Optimized collision detection
+            function checkCollision() {
+                if (!bird) return false;
+                
+                const birdRect = {
+                    left: parseFloat(bird.style.left),
+                    top: parseFloat(bird.style.top),
+                    right: parseFloat(bird.style.left) + 34,
+                    bottom: parseFloat(bird.style.top) + 24
+                };
+                
+                // Check ground collision
+                if (birdRect.bottom > windowHeight - 112) {
+                    return true;
+                }
+                
+                // Check ceiling collision
+                if (birdRect.top < 0) {
+                    return true;
+                }
+                
+                // Check pipe collision with simplified hitbox
+                for (const pipe of pipes) {
+                    const pipeLeft = parseFloat(pipe.top.style.left);
+                    const pipeRight = pipeLeft + 52;
+                    
+                    // Fast check: Is bird horizontally aligned with pipe?
+                    if (birdRect.right > pipeLeft && birdRect.left < pipeRight) {
+                        const topPipeHeight = parseFloat(pipe.top.style.height);
+                        const bottomPipeTop = windowHeight - 112 - parseFloat(pipe.bottom.style.height);
+                        
+                        // Check vertical collision
+                        if (birdRect.top < topPipeHeight || birdRect.bottom > bottomPipeTop) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            
+            // Make bird flap
+            function flapBird() {
+                if (gameOver) return;
+                
+                if (!gameStarted) {
+                    startGame();
+                    return;
+                }
+                
+                birdVelocity = FLAP_STRENGTH;
+                
+                if (settings.enableFx) {
+                    // Enhanced wing animation
+                    birdWing.style.transform = 'rotate(-30deg)';
+                    setTimeout(() => {
+                        if (birdWing) birdWing.style.transform = 'rotate(0deg)';
+                    }, 100);
+                }
+                
+                // Play flap sound
+                if (settings.enableSound) {
+                    try {
+                        sounds.flap.currentTime = 0;
+                        sounds.flap.play().catch(e => {});
+                    } catch(e) {}
+                }
+            }
+            
+            // Update bird position with delta time for smooth movement
+            function updateBird(deltaTime) {
+                if (!bird) return;
+                
+                // Time correction for consistent physics regardless of framerate
+                const timeCorrection = deltaTime / (1000/60);
+                
+                birdVelocity += GRAVITY * timeCorrection;
+                
+                // Apply velocity cap for smoother gameplay
+                if (birdVelocity > 12) birdVelocity = 12;
+                
+                const birdTop = parseFloat(bird.style.top);
+                const newTop = birdTop + birdVelocity * timeCorrection;
+                bird.style.top = newTop + 'px';
+                
+                if (settings.enableFx) {
+                    // Bird rotation based on velocity with deltaTime for smoothness
+                    const rotation = birdVelocity * 2;
+                    bird.style.transform = `translateZ(0) rotate(${Math.min(Math.max(rotation, -30), 90)}deg)`;
+                }
+            }
+            
+            // Start background animations
+            function startBackgroundAnimations() {
+                if (!settings.enableFx) return;
+                
+                // Background elements
+                const clouds = document.querySelector('.clouds');
+                const mountainsBack = document.querySelector('.mountains-back');
+                const mountains = document.querySelector('.mountains');
+                const city = document.querySelector('.city');
+                const ground = document.querySelector('.ground');
+                
+                // Cancel any existing animations
+                for (const key in activeAnimations) {
+                    if (activeAnimations[key]) {
+                        cancelAnimationFrame(activeAnimations[key]);
+                    }
+                }
+                
+                // Define animation function with different speeds for each layer
+                function animateBackground(timestamp) {
+                    if (gameOver) return;
+                    
+                    if (!lastFrameTime) lastFrameTime = timestamp;
+                    const deltaTime = timestamp - lastFrameTime;
+                    
+                    // Move clouds slowest
+                    clouds.style.transform = `translateX(${-(timestamp * 0.01 % 50)}%) translateZ(0)`;
+                    
+                    // Move mountains slow
+                    mountainsBack.style.transform = `translateX(${-(timestamp * 0.02 % 50)}%) translateZ(0)`;
+                    
+                    // Move front mountains medium
+                    mountains.style.transform = `translateX(${-(timestamp * 0.03 % 50)}%) translateZ(0)`;
+                    
+                    // Move city faster
+                    city.style.transform = `translateX(${-(timestamp * 0.05 % 50)}%) translateZ(0)`;
+                    
+                    // Move ground fastest
+                    ground.style.transform = `translateX(${-(timestamp * 0.1 % 50)}%) translateZ(0)`;
+                    
+                    // Continue animation loop
+                    activeAnimations.background = requestAnimationFrame(animateBackground);
+                }
+                
+                // Start the animation
+                activeAnimations.background = requestAnimationFrame(animateBackground);
+            }
+            
+            // Start ground animation
+            function startGroundAnimation(ground) {
+                if (!settings.enableFx) return;
+                
+                function animateGround(timestamp) {
+                    if (gameOver) return;
+                    
+                    ground.style.transform = `translateX(${-(timestamp * 0.1 % 50)}%) translateZ(0)`;
+                    
+                    activeAnimations.ground = requestAnimationFrame(animateGround);
+                }
+                
+                activeAnimations.ground = requestAnimationFrame(animateGround);
+            }
+            
+            // Main game loop with delta time for consistent speed
+            function gameLoop(timestamp) {
+                if (gameOver) return;
+                
+                // Calculate delta time for smoother animation
+                if (!lastFrameTime) lastFrameTime = timestamp;
+                const deltaTime = Math.min(timestamp - lastFrameTime, 33); // Cap delta time to avoid large jumps
+                lastFrameTime = timestamp;
+                
+                // Update FPS counter once per second
+                frameCount++;
+                if (timestamp - lastFpsUpdateTime >= 1000) {
+                    const fps = Math.round((frameCount * 1000) / (timestamp - lastFpsUpdateTime));
+                    fpsCounter.textContent = `FPS: ${fps}`;
+                    frameCount = 0;
+                    lastFpsUpdateTime = timestamp;
+                }
+                
+                updateBird(deltaTime);
+                updatePipes(deltaTime);
+                createPipes();
+                
+                if (checkCollision()) {
+                    endGame();
+                    return;
+                }
+                
+                // Use requestAnimationFrame for next frame
+                animationFrame = requestAnimationFrame(gameLoop);
+            }
+            
+            // Clean up game elements
+            function clearGameElements() {
+                // Remove all existing pipes from DOM
+                pipes.forEach(pipe => {
+                    if (pipe.top.parentNode) gameScreen.removeChild(pipe.top);
+                    if (pipe.bottom.parentNode) gameScreen.removeChild(pipe.bottom);
+                });
+                
+                // Remove bird if exists
+                if (bird && bird.parentNode) {
+                    gameScreen.removeChild(bird);
+                }
+                
+                // Clear all game elements except score display
+                const scoreElement = document.getElementById('score');
+                while (gameScreen.firstChild) {
+                    if (gameScreen.firstChild === scoreElement) {
+                        gameScreen.firstChild.textContent = '0';
+                        break;
+                    }
+                    gameScreen.removeChild(gameScreen.firstChild);
+                }
+                
+                // Clear animations
+                for (const key in activeAnimations) {
+                    if (activeAnimations[key]) {
+                        cancelAnimationFrame(activeAnimations[key]);
+                        activeAnimations[key] = null;
+                    }
+                }
+                
+                // Reset variables
+                pipes = [];
+                bird = null;
+                birdWing = null;
+            }
+            
+            // Start the game
+            function startGame() {
+                // Request fullscreen when game starts - helps with performance
+                const docEl = document.documentElement;
+                if (docEl.requestFullscreen) {
+                    docEl.requestFullscreen().catch(err => {
+                        console.log('Fullscreen request failed:', err);
+                    });
+                }
+                
+                updateDimensions();
+                updateDifficultySettings();
+                
+                startScreen.style.display = 'none';
+                gameOverScreen.style.display = 'none';
+                gameStarted = true;
+                gameOver = false;
+                score = 0;
+                scoreDisplay.textContent = score;
+                
+                // Clear existing game elements for clean restart
+                clearGameElements();
+                
+                // Recreate game elements
+                createGround();
+                bird = createBird();
+                
+                // Reset variables
+                birdVelocity = 0;
+                lastFrameTime = 0;
+                pipes = [];
+                
+                // Start background animations
+                startBackgroundAnimations();
+                
+                // Start game loop with requestAnimationFrame
+                cancelAnimationFrame(animationFrame);
+                animationFrame = requestAnimationFrame(gameLoop);
+            }
+            
+            // End the game
+            function endGame() {
+                gameOver = true;
+                
+                // Clean up timers and animation frames
+                for (const key in activeAnimations) {
+                    if (activeAnimations[key]) {
+                        cancelAnimationFrame(activeAnimations[key]);
+                        activeAnimations[key] = null;
+                    }
+                }
+                
+                // Play hit sound
+                if (settings.enableSound) {
+                    try {
+                        sounds.hit.currentTime = 0;
+                        sounds.hit.play().catch(e => {});
+                    } catch(e) {}
+                }
+                
+                // Save high score in local storage
+                const highScore = localStorage.getItem('flappyHighScore') || 0;
+                if (score > highScore) {
+                    localStorage.setItem('flappyHighScore', score);
+                }
+                
+                finalScoreDisplay.textContent = score;
+                gameOverScreen.style.display = 'flex';
+                
+                // Add high score display if needed
+                const highScoreElem = document.getElementById('high-score');
+                if (!highScoreElem && highScore > 0) {
+                    const highScoreText = document.createElement('p');
+                    highScoreText.id = 'high-score';
+                    highScoreText.className = 'subtitle';
+                    highScoreText.innerHTML = `High Score: <span>${Math.max(highScore, score)}</span>`;
+                    
+                    const restartBtn = document.getElementById('restart-button');
+                    gameOverScreen.insertBefore(highScoreText, restartBtn);
+                } else if (highScoreElem) {
+                    highScoreElem.innerHTML = `High Score: <span>${Math.max(highScore, score)}</span>`;
+                }
+            }
+
+            // Toggle settings panel
+            settingsToggle.addEventListener('click', () => {
+                if (settingsPanel.style.display === 'none' || !settingsPanel.style.display) {
+                    settingsPanel.style.display = 'block';
+                } else {
+                    settingsPanel.style.display = 'none';
+                }
+            });
+            
+            // Settings event handlers
+            nightModeToggle.addEventListener('change', () => {
+                settings.nightMode = nightModeToggle.checked;
+                if (settings.nightMode) {
+                    gameContainer.classList.add('night-mode');
+                } else {
+                    gameContainer.classList.remove('night-mode');
+                }
+                saveSettings();
+            });
+            
+            fxToggle.addEventListener('change', () => {
+                settings.enableFx = fxToggle.checked;
+                saveSettings();
+                
+                if (settings.enableFx) {
+                    startBackgroundAnimations();
+                }
+            });
+            
+            soundToggle.addEventListener('change', () => {
+                settings.enableSound = soundToggle.checked;
+                saveSettings();
+            });
+            
+            difficultySelect.addEventListener('change', () => {
+                settings.difficulty = difficultySelect.value;
+                updateDifficultySettings();
+                saveSettings();
+            });
+            
+            // Event listeners
+            startButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', () => {
+                gameOverScreen.style.display = 'none';
+                startGame();
+            });
+            
+            // Touch and mouse events with event delegation for better performance
+            document.addEventListener('click', (e) => {
+                // Don't flap when clicking buttons or settings panel or ad banner
+                if (e.target.tagName === 'BUTTON' || 
+                    e.target === settingsToggle || 
+                    settingsPanel.contains(e.target) ||
+                    document.getElementById('admob-banner').contains(e.target)) return;
+                
+                flapBird();
+            });
+            
+            document.addEventListener('touchstart', (e) => {
+                // Don't flap when touching buttons or settings panel or ad banner
+                if (e.target.tagName === 'BUTTON' || 
+                    e.target === settingsToggle || 
+                    settingsPanel.contains(e.target) ||
+                    document.getElementById('admob-banner').contains(e.target)) return;
+                
+                flapBird();
+                e.preventDefault();
+            }, { passive: false });
+            
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' || e.code === 'ArrowUp') {
+                    flapBird();
+                    e.preventDefault();
+                }
+            });
+            
+            // Handle window resize events
+            window.addEventListener('resize', () => {
+                updateDimensions();
+                if (!gameStarted || gameOver) return;
+                
+                // Adjust bird position in case of resize
+                if (bird) {
+                    const birdX = Math.min(windowWidth * 0.2, 100);
+                    bird.style.left = birdX + 'px';
+                }
+            });
+
+            window.addEventListener('orientationchange', updateDimensions);
+            
+            // Load saved settings
+            loadSettings();
+            
+            // Initial setup
+            updateDimensions();
+            
+            // Preload assets for better performance
+            const preloadImages = [
+                'https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/clouds.png',
+                'https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/mountains.png',
+                'https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/mountains-back.png',
+                'https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/city.png',
+                'https://cdn.jsdelivr.net/gh/danielfmor/public-resources@main/images/ground.png'
+            ];
+            
+            preloadImages.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+            
+            // Hide FPS counter if not in debug mode
+            const isDebugMode = false;
+            if (!isDebugMode) {
+                fpsCounter.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
